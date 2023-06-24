@@ -9,7 +9,6 @@ class LinearPol(Chem.rdchem.Mol):
     Linear Polymer class.
 
     Attributes:
-        SMILES (str): The SMILES string of the parent polymer.
         mol (Chem.rdchem.Mol): The RDKit molecule of the parent polymer.
         star_inds (list): List of star atom indices in the parent polymer. Sorted from smallest to largest index.
         connector_inds (list): List of connector atom indices in the parent polymer. Sorted from smallest to largest index.
