@@ -5,48 +5,69 @@ from polygnn_kit.utils import n_to_subtract
 
 
 class LinearPol(Chem.rdchem.Mol):
+    """
+    Linear Polymer class.
+
+    Attributes:
+        SMILES (str): The SMILES string of the parent polymer.
+        mol (Chem.rdchem.Mol): The RDKit molecule of the parent polymer.
+        star_inds (list): List of star atom indices in the parent polymer. Sorted from smallest to largest index.
+        connector_inds (list): List of connector atom indices in the parent polymer. Sorted from smallest to largest index.
+        periodic_bond_type (Chem.rdchem.BondType): The bond type of the periodic bond in the parent polymer.
+    """
+
     def __init__(self, mol):
         """
-        Linear Polymer class. SMILES = the smiles string of the parent polymer.
+        Initializes the LinearPol object.
+
+        Args:
+            mol (str or Chem.rdchem.Mol): SMILES string or RDKit molecule of the parent polymer.
         """
-        if type(mol) == str:
+        if isinstance(mol, str):
             self.SMILES = mol
             self.mol = Chem.MolFromSmiles(mol)
         else:
             self.mol = mol
 
-        self.star_inds, self.connector_inds = get_star_inds(
-            self.mol
-        )  # these are always sorted from smallest index to largest index
+        self.star_inds, self.connector_inds = get_star_inds(self.mol)
         self.periodic_bond_type = self.get_pbond_type()
 
     def get_pbond_type(self):
-        bond1_type = self.mol.GetBondBetweenAtoms(
-            self.star_inds[0], self.connector_inds[0]
-        ).GetBondType()
-        bond2_type = self.mol.GetBondBetweenAtoms(
-            self.star_inds[1], self.connector_inds[1]
-        ).GetBondType()
-        if bond1_type != bond2_type:
-            raise ValueError(
-                "Invalid repeat unit. Periodic bond types are mismatching."
-            )
+        """
+        Returns the bond type of the periodic bond.
 
+        Returns:
+            Chem.rdchem.BondType: The bond type of the periodic bond.
+
+        Raises:
+            ValueError: If the bond types of the periodic bond are mismatching.
+        """
+        bond1_type = self.mol.GetBondBetweenAtoms(self.star_inds[0], self.connector_inds[0]).GetBondType()
+        bond2_type = self.mol.GetBondBetweenAtoms(self.star_inds[1], self.connector_inds[1]).GetBondType()
+        if bond1_type != bond2_type:
+            raise ValueError("Invalid repeat unit. Periodic bond types are mismatching.")
         return bond1_type
 
     def PeriodicMol(self, repeat_unit_on_fail=False):
+        """
+        Creates a periodic representation of the linear polymer molecule.
+
+        Args:
+            repeat_unit_on_fail (bool, optional): Whether to return None or attempt to create a periodic molecule
+                even if the periodization fails. Defaults to False.
+
+        Returns:
+            PeriodicMol or None: The periodic representation of the linear polymer molecule, or None if the
+                periodization fails.
+        """
         em = Chem.EditableMol(self.mol)
         try:
-            em.AddBond(
-                self.connector_inds[0], self.connector_inds[1], self.periodic_bond_type
-            )
+            em.AddBond(self.connector_inds[0], self.connector_inds[1], self.periodic_bond_type)
             em.RemoveAtom(self.star_inds[1])
             em.RemoveAtom(self.star_inds[0])
-
             return PeriodicMol(em.GetMol(), self.star_inds, self.connector_inds)
         except:
-            # print("!!!Periodization of %s Failed!!!" % self.SMILES)
-            if repeat_unit_on_fail == False:
+            if not repeat_unit_on_fail:
                 return None
             else:
                 em.RemoveAtom(self.star_inds[1])
